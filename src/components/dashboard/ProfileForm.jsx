@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-    import { supabase } from '@/lib/supabaseClient';
+    import { supabase } from '@/lib/customSupabaseClient';
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';

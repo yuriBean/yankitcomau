@@ -9,15 +9,19 @@ import React from 'react';
       const navigate = useNavigate();
 
       const handleNavigation = (path) => {
-        const [pathname, hash] = path.split('#');
-        navigate(pathname);
-        if (hash) {
-          setTimeout(() => {
-            const element = document.getElementById(hash);
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth' });
-            }
-          }, 100); 
+        if (path.startsWith('http://') || path.startsWith('https://')) {
+          window.open(path, '_blank', 'noopener noreferrer');
+        } else {
+          const [pathname, hash] = path.split('#');
+          navigate(pathname);
+          if (hash) {
+            setTimeout(() => {
+              const element = document.getElementById(hash);
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+              }
+            }, 100); 
+          }
         }
       };
 
@@ -51,9 +55,9 @@ import React from 'react';
         {
           title: "Services",
           links: [
-            { name: "Yank a Bag Now", path: "/yankit-a-bag-now" },
+            { name: "Yank a Bag Now", path: "/yank-a-bag-now" },
             { name: "Send a Bag", path: "/send-a-bag" },
-            { name: "My Activity", path: "/my-activity" },
+            { name: "Flights", path: "/flights" },
           ],
         },
       ];

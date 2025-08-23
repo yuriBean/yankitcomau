@@ -11,7 +11,7 @@ import React, { useState, useEffect } from 'react';
 
     const navLinks = [
       { name: 'Home', path: '/', icon: Home },
-      { name: 'Yank a Bag', path: '/yank-a-bag', icon: Briefcase },
+      { name: 'Yank a Bag', path: '/yank-a-bag-now', icon: Briefcase },
       { name: 'Send a Bag', path: '/send-a-bag', icon: Send },
       { name: 'Support', path: '/support', icon: Info },
     ];

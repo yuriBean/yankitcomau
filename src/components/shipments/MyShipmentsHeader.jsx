@@ -15,7 +15,7 @@ import React from 'react';
             My Shipments
           </h1>
           <p className="text-lg text-muted-foreground dark:text-slate-300 max-w-xl mx-auto">
-            Track items you are sending and items you are carrying for others. Manage contracts and communicate.
+            Review bags you have sent and bags you have carried for others. Reviews are an essential way to manage how you interact with the platform.
           </p>
         </motion.div>
       );

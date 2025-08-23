@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
     import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
     import { Button } from '@/components/ui/button';
     import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -6,7 +6,6 @@ import React from 'react';
     import { format } from 'date-fns';
     import { useNavigate } from 'react-router-dom';
     import { useToast } from '@/components/ui/use-toast';
-    import { supabase } from '@/lib/supabaseClient';
 
     const getInitials = (name) => {
       if (!name) return '?';
@@ -18,7 +17,7 @@ import React from 'react';
     export const BaggageListingCard = ({ listing, currentUserId }) => {
       const navigate = useNavigate();
       const { toast } = useToast();
-
+      const [loading, setLoading] = useState(false);
       const {
         id: listingId,
         user_id: travellerUserId,
@@ -34,55 +33,54 @@ import React from 'react';
       const travellerName = travellerProfile?.full_name || 'Yanker';
       const travellerAvatarUrl = travellerProfile?.avatar_url;
 
-      const handleSendMessage = async () => {
+      const handlePayAndHire = async () => {
         if (!currentUserId) {
-          toast({ title: "Please Sign In", description: "You need to be signed in to send a message.", variant: "destructive" });
+          toast({ title: "Please Sign In", description: "You need to be signed in to hire a yanker.", variant: "destructive" });
           navigate('/signin');
           return;
         }
-
         if (currentUserId === travellerUserId) {
-          toast({ title: "Action Not Allowed", description: "You cannot send a message about your own yanking offer.", variant: "default" });
+          toast({ title: "Action Not Allowed", description: "You cannot hire your own yanking offer." });
           return;
         }
-        
+      
+        const amountCents = Math.round(Number(earningsPerBag) * 100);
+        if (!amountCents || Number.isNaN(amountCents)) {
+          toast({ title: "Price unavailable", description: "This listing has no valid price.", variant: "destructive" });
+          return;
+        }
+      
         try {
-          let { data: existingConversation, error: fetchError } = await supabase
-            .from('conversations')
-            .select('id')
-            .or(`and(listing_id.eq.${listingId},traveler_user_id.eq.${travellerUserId},sender_user_id.eq.${currentUserId}),and(listing_id.eq.${listingId},traveler_user_id.eq.${currentUserId},sender_user_id.eq.${travellerUserId})`)
-            .maybeSingle();
-
-          if (fetchError && fetchError.code !== 'PGRST116') { 
-            throw fetchError;
-          }
-          
-          let conversationId;
-          if (existingConversation) {
-            conversationId = existingConversation.id;
-          } else {
-            const { data: newConversation, error: insertError } = await supabase
-              .from('conversations')
-              .insert({
-                listing_id: listingId,
-                traveler_user_id: travellerUserId, 
-                sender_user_id: currentUserId, 
-              })
-              .select('id')
-              .single();
-
-            if (insertError) throw insertError;
-            conversationId = newConversation.id;
-          }
-          
-          navigate(`/my-activity?chatOpen=true&conversationId=${conversationId}&listingId=${listingId}&recipientId=${travellerUserId}&recipientName=${encodeURIComponent(travellerName)}`);
-
-        } catch (error) {
-          console.error("Error initiating conversation:", error);
-          toast({ title: "Error", description: "Could not initiate conversation. " + error.message, variant: "destructive" });
+          setLoading(true);
+      
+          // Build the redirect URL you want Stripe to come back to
+          const successRedirect = `${window.location.origin}/my-activity?chatOpen=true&listingId=${listingId}&recipientId=${travellerUserId}&recipientName=${encodeURIComponent(travellerName)}`;
+      
+          const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/create-checkout-session`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              amount: amountCents,
+              currency: "aud",
+              listingId,
+              travelerUserId: travellerUserId,
+              shipperUserId: currentUserId,
+              successRedirect,   // send to backend
+            }),
+          });
+      
+          const data = await res.json();
+          if (!data?.url) throw new Error("No checkout URL returned");
+      
+          window.location.href = data.url; // Stripe hosted page
+        } catch (err) {
+          console.error("Checkout error:", err);
+          toast({ title: "Payment error", description: err.message, variant: "destructive" });
+        } finally {
+          setLoading(false);
         }
       };
-
+      
       const displayPrice = earningsPerBag ? `A${Number(earningsPerBag).toFixed(2)} / bag` : 'Price N/A';
 
       return (
@@ -129,8 +127,9 @@ import React from 'react';
           </CardContent>
           <CardFooter className="border-t border-slate-200 dark:border-slate-700 pt-4">
              {currentUserId !== travellerUserId ? (
-                <Button onClick={handleSendMessage} className="w-full bg-gradient-to-r from-primary to-blue-600 hover:opacity-90 text-white">
-                  <MessageSquare size={16} className="mr-2" /> Message Yanker
+                <Button onClick={handlePayAndHire}
+                disabled={loading || !Number(earningsPerBag)} className="w-full bg-gradient-to-r from-primary to-blue-600 hover:opacity-90 text-white">
+                  <MessageSquare size={16} className="mr-2" /> {loading ? "Redirecting..." : "Pay & Hire"}
                 </Button>
               ) : (
                 <Button disabled className="w-full opacity-70 cursor-not-allowed">

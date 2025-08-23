@@ -142,8 +142,8 @@ import React, { useState } from 'react';
           {!isModal && (
             <div className="flex items-center justify-between">
               <div className="text-sm">
-                <Link to="#" className="font-medium text-primary hover:underline dark:text-secondary">
-                  Forgot your password? (Coming Soon)
+                <Link to="/forgot-password" className="font-medium text-primary hover:underline dark:text-secondary">
+                  Forgot your password?
                 </Link>
               </div>
             </div>

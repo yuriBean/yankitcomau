@@ -1,6 +1,6 @@
 import React from 'react';
     import { Button } from '@/components/ui/button';
-    import { supabase } from '@/lib/supabaseClient';
+    import { supabase } from '@/lib/customSupabaseClient';
     import { useToast } from '@/components/ui/use-toast';
 
     const SocialLoginButtons = () => {

@@ -4,12 +4,13 @@ import React, { useEffect } from 'react';
     import ChatInterface from '@/components/messaging/ChatInterface';
     import MyShipmentsHeader from '@/components/shipments/MyShipmentsHeader';
     import MyShipmentsTabs from '@/components/shipments/MyShipmentsTabs';
-    import useShipments from '@/hooks/useShipments';
+    import useUserContracts from '@/hooks/useUserContracts';
     import useChatManager from '@/hooks/useChatManager';
     import { useLocation, useNavigate } from 'react-router-dom';
     import { useToast } from '@/components/ui/use-toast';
     import { Button } from '@/components/ui/button';
     import { Loader2 } from 'lucide-react';
+    import { useAuth } from '@/contexts/SupabaseAuthContext';
 
     const pageVariants = {
       initial: { opacity: 0, y: 20 },
@@ -17,10 +18,9 @@ import React, { useEffect } from 'react';
       out: { opacity: 0, y: -20 }
     };
     
-    const useAuthGuardMyShipments = (currentUserId, isLoadingUser, isLoadingSent, isLoadingCarrying, navigate, location, toast) => {
+    const useAuthGuardMyShipments = (currentUserId, isLoading, navigate, location, toast) => {
       useEffect(() => {
-        // Only redirect if user is definitively null (not undefined/loading) and shipment data is also done loading
-        if (currentUserId === null && !isLoadingUser && !isLoadingSent && !isLoadingCarrying) { 
+        if (currentUserId === null && !isLoading) { 
             toast({
                 title: "Authentication Required",
                 description: "Please sign in to view your shipments.",
@@ -31,7 +31,7 @@ import React, { useEffect } from 'react';
               navigate('/signin', { state: { from: location.pathname }});
             }
         }
-      }, [currentUserId, isLoadingUser, isLoadingSent, isLoadingCarrying, navigate, toast, location.pathname]);
+      }, [currentUserId, isLoading, navigate, toast, location.pathname]);
     };
 
     const useChatRedirectHandler = (location, currentUserId, handleOpenChat, navigate) => {
@@ -68,13 +68,14 @@ import React, { useEffect } from 'react';
     );
 
     const MyShipmentsPage = () => {
+      const { session, loading: isLoadingUser } = useAuth();
+      const currentUserId = session?.user?.id;
+      
       const {
-        sentShipments,
-        carryingShipments,
-        isLoadingSent,
-        isLoadingCarrying,
-        currentUserId,
-      } = useShipments();
+        sentContracts,
+        carryingContracts,
+        isLoading: isLoadingContracts,
+      } = useUserContracts(currentUserId);
 
       const navigate = useNavigate();
       const location = useLocation();
@@ -87,10 +88,7 @@ import React, { useEffect } from 'react';
         setIsChatOpen,
       } = useChatManager(currentUserId);
       
-      // isLoadingUser is true if currentUserId is undefined (initial state of useShipments hook)
-      const isLoadingUser = typeof currentUserId === 'undefined';
-
-      useAuthGuardMyShipments(currentUserId, isLoadingUser, isLoadingSent, isLoadingCarrying, navigate, location, toast);
+      useAuthGuardMyShipments(currentUserId, isLoadingUser, navigate, location, toast);
       useChatRedirectHandler(location, currentUserId, handleOpenChat, navigate);
       
       if (isLoadingUser) {
@@ -109,12 +107,10 @@ import React, { useEffect } from 'react';
           >
             <MyShipmentsHeader />
             <MyShipmentsTabs
-              sentShipments={sentShipments}
-              carryingShipments={carryingShipments}
+              sentContracts={sentContracts}
+              carryingContracts={carryingContracts}
               onOpenChat={handleOpenChat}
-              isLoadingSent={isLoadingSent}
-              isLoadingCarrying={isLoadingCarrying}
-              currentUserId={currentUserId}
+              isLoading={isLoadingContracts}
             />
           </motion.div>
 

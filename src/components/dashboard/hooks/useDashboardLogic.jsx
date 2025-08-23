@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
     import { useNavigate } from 'react-router-dom';
     import { supabase } from '@/lib/supabaseClient';
@@ -11,9 +12,6 @@ import { useState, useEffect, useCallback } from 'react';
         .eq(userIdField, userId);
       if (error) {
         console.error(`Supabase query error for ${table} count:`, error.message);
-        if (error.message.toLowerCase().includes('failed to fetch')) {
-          throw new Error(`Network error fetching count for ${table}. Please check your connection.`);
-        }
         throw error;
       }
       return count || 0;
@@ -26,9 +24,6 @@ import { useState, useEffect, useCallback } from 'react';
         .eq(userIdField, userId);
       if (error) {
         console.error(`Supabase query error for ${table} data:`, error.message);
-        if (error.message.toLowerCase().includes('failed to fetch')) {
-          throw new Error(`Network error fetching data for ${table}. Please check your connection.`);
-        }
         throw error;
       }
       return data || [];
@@ -37,89 +32,86 @@ import { useState, useEffect, useCallback } from 'react';
     const useDashboardLogic = (session) => {
       const [profile, setProfile] = useState(null);
       const [loading, setLoading] = useState(true);
-      const [stats, setStats] = useState({ listings: 0, shipmentsAsSender: 0, shipmentsAsTraveler: 0, rating: 0, reviews: 0 });
+      const [stats, setStats] = useState({ listings: 0, shipmentsSent: 0, shipmentsCarried: 0, rating: 0, reviews: 0 });
+      const [sentShipments, setSentShipments] = useState([]);
+      const [carryingShipments, setCarryingShipments] = useState([]);
+      const [isLoadingSent, setIsLoadingSent] = useState(true);
+      const [isLoadingCarrying, setIsLoadingCarrying] = useState(true);
+      const [error, setError] = useState(null);
+
       const navigate = useNavigate();
       const { toast } = useToast();
 
-      const handleSignOut = useCallback(async () => {
-        try {
-          const { error } = await supabase.auth.signOut();
-          if (error) throw error;
-          toast({ title: 'Signed Out', description: 'You have been successfully signed out.', variant: 'default', className: 'bg-green-500 dark:bg-green-600 text-white' });
-          setProfile(null);
-          setStats({ listings: 0, shipmentsAsSender: 0, shipmentsAsTraveler: 0, rating: 0, reviews: 0 });
-          navigate('/signin', { replace: true }); 
-        } catch (error) {
-           let description = "Could not sign out. Please try again.";
-            if (error.message?.toLowerCase().includes('failed to fetch') || error.message?.toLowerCase().includes('network error')) {
-              description = 'Network error during sign out. Please check your connection.';
-            } else if (error.message) {
-              description = error.message;
-            }
-          toast({ title: 'Error Signing Out', description, variant: 'destructive' });
-        }
-      }, [toast, navigate]);
-
-      const fetchProfileAndStats = useCallback(async (user) => {
+      const fetchAllData = useCallback(async (user) => {
         if (!user) {
           setLoading(false);
-          navigate('/signin', { replace: true });
+          setError(new Error("User is not authenticated."));
           return;
         }
         
         setLoading(true);
+        setError(null);
+        setIsLoadingSent(true);
+        setIsLoadingCarrying(true);
+
         try {
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', user.id)
             .single();
+          
+          if (profileError) throw profileError;
+          setProfile(profileData);
 
-          if (profileError && profileError.code !== 'PGRST116') { 
-            if (profileError.message.toLowerCase().includes('failed to fetch')) {
-              throw new Error('Network error fetching profile. Please check your connection.');
-            }
-            throw profileError;
-          }
-          
-          if (profileError && profileError.code === 'PGRST116') {
-            toast({
-              title: 'Profile Not Found',
-              description: 'It seems your profile is not fully set up. Please complete your profile information.',
-              variant: 'default',
-              className: 'bg-yellow-500 text-white'
-            });
-            setProfile({ 
-              id: user.id, email: user.email, full_name: user.email,
-              first_name: '', surname: '', address_line1: '', address_line2: '',
-              city: '', state_province_region: '', postal_code: '', country: 'Australia', avatar_url: null
-            });
-          } else {
-            setProfile(profileData);
-          }
-          
           const [listingsCount, shipmentsSentCount, shipmentsCarriedCount, reviewsData] = await Promise.all([
             fetchSupabaseCount('listings', 'user_id', user.id),
             fetchSupabaseCount('shipments', 'shipper_user_id', user.id),
             fetchSupabaseCount('shipments', 'traveler_user_id', user.id),
             fetchSupabaseData('reviews', 'rating, id', 'reviewed_user_id', user.id)
           ]);
-
+          
           const totalRating = reviewsData.reduce((acc, review) => acc + review.rating, 0);
           const avgRating = reviewsData.length > 0 ? (totalRating / reviewsData.length).toFixed(1) : 0;
 
           setStats({
             listings: listingsCount,
-            shipmentsAsSender: shipmentsSentCount,
-            shipmentsAsTraveler: shipmentsCarriedCount,
+            shipmentsSent: shipmentsSentCount,
+            shipmentsCarried: shipmentsCarriedCount,
             rating: parseFloat(avgRating),
             reviews: reviewsData.length,
           });
 
-        } catch (error) {
-          let description = error.message || "An unexpected error occurred.";
-          if (error.message?.toLowerCase().includes('failed to fetch') || error.message?.toLowerCase().includes('network error')) {
+          const sentPromise = supabase
+            .from('shipments')
+            .select('*, traveler_profile:profiles!shipments_traveler_user_id_fkey(full_name, avatar_url), listing:listings(origin, destination, departure_date)')
+            .eq('shipper_user_id', user.id)
+            .order('created_at', { ascending: false });
+
+          const carryingPromise = supabase
+            .from('shipments')
+            .select('*, sender_profile:profiles!shipments_shipper_user_id_fkey(full_name, avatar_url), listing:listings(origin, destination, departure_date)')
+            .eq('traveler_user_id', user.id)
+            .order('created_at', { ascending: false });
+          
+          const [{data: sentData, error: sentError}, {data: carryingData, error: carryingError}] = await Promise.all([sentPromise, carryingPromise]);
+
+          if(sentError) throw sentError;
+          setSentShipments(sentData || []);
+          setIsLoadingSent(false);
+
+          if(carryingError) throw carryingError;
+          setCarryingShipments(carryingData || []);
+          setIsLoadingCarrying(false);
+
+        } catch (err) {
+          console.error("Dashboard data fetch error:", err);
+          setError(err);
+          let description = err.message || "An unexpected error occurred.";
+          if (err.message?.toLowerCase().includes('failed to fetch') || err.message?.toLowerCase().includes('network error')) {
             description = 'A network error occurred while loading dashboard data. Please check your internet connection and try again.';
+          } else if (err.code === 'PGRST116') {
+             description = "Your profile could not be found. It might not have been created yet. Please try refreshing the page.";
           }
           toast({ 
             title: 'Error Loading Dashboard Data', 
@@ -130,22 +122,34 @@ import { useState, useEffect, useCallback } from 'react';
         } finally {
           setLoading(false);
         }
-      }, [toast, navigate]);
+      }, [toast]);
 
       useEffect(() => {
         if (session?.user) {
-          fetchProfileAndStats(session.user);
-        } else if (session === null) { 
+          fetchAllData(session.user);
+        } else if (!session && session !== undefined) { 
           setLoading(false);
-          navigate('/signin', { replace: true });
         }
-      }, [session, fetchProfileAndStats, navigate]);
+      }, [session, fetchAllData, navigate]);
       
-      const handleProfileUpdate = useCallback(() => {
-        if (session?.user) fetchProfileAndStats(session.user);
-      }, [session, fetchProfileAndStats]);
+      const handleProfileUpdate = useCallback(async (updatedProfileData) => {
+        if (!session?.user) return;
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update(updatedProfileData)
+                .eq('id', session.user.id);
+            if (error) throw error;
+            setProfile(prev => ({...prev, ...updatedProfileData}));
+            return { success: true };
+        } catch (error) {
+            console.error('Failed to update profile:', error);
+            throw error;
+        }
+    }, [session]);
 
-      return { profile, loading, stats, handleSignOut, handleProfileUpdate };
+      return { profile, loading, stats, error, handleProfileUpdate, sentShipments, carryingShipments, isLoadingSent, isLoadingCarrying, fetchAllData };
     };
     
     export default useDashboardLogic;
+  

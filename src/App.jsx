@@ -1,32 +1,40 @@
+
 import React, { Suspense } from 'react';
     import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
     import { Toaster } from '@/components/ui/toaster';
-    import { motion } from 'framer-motion';
+    import { motion, AnimatePresence } from 'framer-motion';
     import { Loader2 } from 'lucide-react';
 
     import PageLayout from '@/components/layouts/PageLayout';
     import ScrollToTop from '@/components/ScrollToTop';
-    import { AuthProvider as SupabaseAuthProvider, useAuth } from '@/contexts/SupabaseAuthContext';
+    import { AuthProvider, useAuth } from '@/contexts/SupabaseAuthContext';
     import { AppStateProvider } from '@/contexts/AppStateContext';
     import ProtectedRoute from '@/components/ProtectedRoute'; 
 
     // Page Imports
     const HomePage = React.lazy(() => import('@/pages/HomePage'));
     const SupportPage = React.lazy(() => import('@/pages/SupportPage'));
-    const MyBookingsPage = React.lazy(() => import('@/pages/MyBookingsPage'));
     const SignInPage = React.lazy(() => import('@/pages/SignInPage'));
     const SignUpPage = React.lazy(() => import('@/pages/SignUpPage'));
     const HowItWorksPage = React.lazy(() => import('@/pages/HowItWorksPage')); 
-    const YankABagNowPage = React.lazy(() => import('@/pages/yank-a-bag-now/YankABagNowPage')); 
-    const SendBaggagePage = React.lazy(() => import('@/pages/SendBaggagePage'));
+    const BaggageActionsPage = React.lazy(() => import('@/pages/BaggageActionsPage'));
     const ListYourBagPage = React.lazy(() => import('@/pages/list-your-bag/ListYourBagPage'));
     const DashboardPage = React.lazy(() => import('@/pages/DashboardPage'));
     const EmailConfirmationPage = React.lazy(() => import('@/pages/EmailConfirmationPage'));
+    const ForgotPasswordPage = React.lazy(() => import('@/pages/ForgotPasswordPage'));
+    const ResetPasswordPage = React.lazy(() => import('@/pages/ResetPasswordPage'));
+    const ChangePasswordPage = React.lazy(() => import('@/pages/ChangePasswordPage'));
     const FlightResultsPage = React.lazy(() => import('@/pages/FlightResultsPage'));
     const MyShipmentsPage = React.lazy(() => import('@/pages/MyShipmentsPage'));
+    const MyListingsPage = React.lazy(() => import('@/pages/MyListingsPage'));
+    const EditListingPage = React.lazy(() => import('@/pages/EditListingPage'));
     const AfricanAnecdotesPage = React.lazy(() => import('@/pages/AfricanAnecdotesPage'));
     const FlightBookingPaymentPage = React.lazy(() => import('@/pages/FlightBookingPaymentPage'));
+    const ShipmentPaymentPage = React.lazy(() => import('@/pages/ShipmentPaymentPage'));
     const FlightBookingTrackingPage = React.lazy(() => import('@/pages/FlightBookingTrackingPage'));
+    const ShipmentTrackingPage = React.lazy(() => import('@/pages/ShipmentTrackingPage'));
+    const FlightsPage = React.lazy(() => import('@/pages/FlightsPage'));
+    const CreateShipmentAndPayPage = React.lazy(() => import('@/pages/CreateShipmentAndPayPage'));
     
     // Static Page Imports
     const AboutPage = React.lazy(() => import('@/pages/static/AboutPage'));
@@ -46,22 +54,30 @@ import React, { Suspense } from 'react';
     
     const routesConfig = [
       { path: "/", element: <HomePage />, name: "Home" },
+      { path: "/flights-search", element: <FlightsPage />, name: "Flights" },
       { path: "/flights", element: <FlightResultsPage />, name: "Flight Results" },
       { path: "/support", element: <SupportPage />, name: "Support" },
       { path: "/signin", element: <SignInPage />, name: "Sign In" },
       { path: "/signup", element: <SignUpPage />, name: "Sign Up" },
       { path: "/how-it-works", element: <HowItWorksPage />, name: "How It Works" }, 
-      { path: "/confirm-email", element: <EmailConfirmationPage />, name: "Confirm Email" },
-      { path: "/my-activity", element: <MyBookingsPage />, isProtected: true, name: "My Activity" },
-      { path: "/my-bookings", element: <MyBookingsPage />, isProtected: true, name: "My Bookings" },
-      { path: "/yank-a-bag-now", element: <YankABagNowPage />, name: "Yank a Bag Now" },
-      { path: "/send-a-bag", element: <SendBaggagePage />, name: "Send a Bag" },
+      { path: "/yank-a-bag-now", element: <BaggageActionsPage />, name: "Yank a Bag Now" },
+      { path: "/send-a-bag", element: <BaggageActionsPage />, isProtected: false, name: "Send a Bag" },
       { path: "/list-your-bag", element: <ListYourBagPage />, isProtected: true, name: "List Your Bag" },
       { path: "/dashboard", element: <DashboardPage />, isProtected: true, name: "Dashboard" },
+      { path: "/confirm-email", element: <EmailConfirmationPage />, name: "Confirm Email" },
+      { path: "/forgot-password", element: <ForgotPasswordPage />, name: "Forgot Password" },
+      { path: "/reset-password", element: <ResetPasswordPage />, name: "Reset Password" },
+      { path: "/change-password", element: <ChangePasswordPage />, isProtected: true, name: "Change Password" },
+      { path: "/flight-results", element: <FlightResultsPage />, name: "Flight Results" },
       { path: "/my-shipments", element: <MyShipmentsPage />, isProtected: true, name: "My Shipments" },
+      { path: "/my-listings", element: <MyListingsPage />, isProtected: true, name: "My Listings" },
+      { path: "/edit-listing/:listingId", element: <EditListingPage />, isProtected: true, name: "Edit Listing" },
       { path: "/african-anecdotes", element: <AfricanAnecdotesPage />, name: "African Anecdotes" },
-      { path: "/payment/:bookingId", element: <FlightBookingPaymentPage />, isProtected: true, name: "Payment" },
-      { path: "/tracking/:bookingId", element: <FlightBookingTrackingPage />, isProtected: true, name: "Tracking" },
+      { path: "/payment/flight/:bookingId", element: <FlightBookingPaymentPage />, isProtected: true, name: "Flight Payment" },
+      { path: "/payment/shipment/:shipmentId", element: <ShipmentPaymentPage />, isProtected: true, name: "Shipment Payment" },
+      { path: "/create-shipment-and-pay", element: <CreateShipmentAndPayPage />, isProtected: true, name: "Create Shipment And Pay" },
+      { path: "/tracking/:bookingId", element: <FlightBookingTrackingPage />, isProtected: true, name: "Flight Tracking" },
+      { path: "/shipment-tracking/:shipmentId", element: <ShipmentTrackingPage />, isProtected: true, name: "Shipment Tracking" },
       { path: "/about", element: <AboutPage />, name: "About Us" },
       { path: "/careers", element: <CareersPage />, name: "Careers" },
       { path: "/press", element: <PressPage />, name: "Press" },
@@ -73,49 +89,49 @@ import React, { Suspense } from 'react';
 
     const AppRoutes = () => {
       const location = useLocation();
-      const { session } = useAuth();
     
       return (
         <Suspense fallback={<AppLoadingScreen />}>
-          <motion.div
-            key={location.pathname} 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="flex-grow" 
-          >
-            <Routes>
-              {routesConfig.map(({ path, element, isProtected, name }) => {
-                const pageElement = React.cloneElement(element, { session });
-                return (
-                  <Route 
-                    key={name || path} 
-                    path={path} 
-                    element={isProtected ? <ProtectedRoute>{pageElement}</ProtectedRoute> : pageElement} 
-                  />
-                );
-              })}
-            </Routes>
-          </motion.div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="flex-grow"
+            >
+              <Routes location={location}>
+                {routesConfig.map(({ path, element, isProtected, name }) => {
+                  return (
+                    <Route
+                      key={name || path}
+                      path={path}
+                      element={isProtected ? <ProtectedRoute>{element}</ProtectedRoute> : element}
+                    />
+                  );
+                })}
+              </Routes>
+            </motion.div>
+          </AnimatePresence>
         </Suspense>
       );
     };
     AppRoutes.displayName = 'AppRoutes';
 
     function AppContent() {
-      const { session, loading: authLoading } = useAuth();
+      const auth = useAuth();
       const location = useLocation();
       
-      if (authLoading && session === undefined) { 
+      if (auth?.loading) { 
         return <AppLoadingScreen />;
       }
       
-      const showChatbotOnRoutes = ['/', '/support', '/how-it-works', '/flights', '/send-a-bag', '/yank-a-bag-now'];
+      const showChatbotOnRoutes = ['/', '/support', '/how-it-works', '/flights-search', '/send-a-bag', '/yank-a-bag-now'];
       const shouldShowChatbot = showChatbotOnRoutes.includes(location.pathname);
 
       return (
-        <PageLayout session={session} showChatbot={shouldShowChatbot}>
+        <PageLayout showChatbot={shouldShowChatbot}>
           <AppRoutes />
         </PageLayout>
       );
@@ -127,9 +143,9 @@ import React, { Suspense } from 'react';
         <Router>
           <ScrollToTop />
           <AppStateProvider>
-            <SupabaseAuthProvider>
+            <AuthProvider>
               <AppContent />
-            </SupabaseAuthProvider>
+            </AuthProvider>
           </AppStateProvider>
           <Toaster />
         </Router>
@@ -137,3 +153,4 @@ import React, { Suspense } from 'react';
     }
 
     export default App;
+  

@@ -1,39 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-    import { supabase } from '@/lib/customSupabaseClient';
+    import { supabase } from '@/lib/supabaseClient';
     import { useToast } from '@/components/ui/use-toast';
+    import { useAuth } from '@/contexts/SupabaseAuthContext';
 
     const useShipments = () => {
+      const { session } = useAuth();
       const [sentShipments, setSentShipments] = useState([]);
       const [carryingShipments, setCarryingShipments] = useState([]);
       const [isLoadingSent, setIsLoadingSent] = useState(true);
       const [isLoadingCarrying, setIsLoadingCarrying] = useState(true);
       const { toast } = useToast();
-      const [currentUserId, setCurrentUserId] = useState(undefined); 
-
-      useEffect(() => {
-        let isMounted = true;
-        const fetchUser = async () => {
-          try {
-            const { data: { user }, error: userError } = await supabase.auth.getUser();
-            if (userError) {
-              throw userError;
-            }
-            if (isMounted) {
-              setCurrentUserId(user?.id || null);
-            }
-          } catch (error) {
-            console.error("Error fetching user in useShipments:", error);
-            if (isMounted) {
-              toast({ title: "Session Error", description: `Could not retrieve user session: ${error.message}`, variant: "destructive" });
-              setCurrentUserId(null);
-            }
-          }
-        };
-        fetchUser();
-        return () => {
-          isMounted = false;
-        };
-      }, [toast]); 
+      const currentUserId = session?.user?.id;
 
       const fetchProfilesForShipments = async (shipments, profileIdFieldForShipment, profileDestFieldOnShipment) => {
         if (!shipments || shipments.length === 0) return shipments;
@@ -91,8 +68,6 @@ import { useState, useEffect, useCallback } from 'react';
           created_at,
           updated_at,
           currency,
-          item_description,
-          conversation_id,
           listing:listings (id, origin, destination, departure_date)
         `;
 
@@ -138,17 +113,10 @@ import { useState, useEffect, useCallback } from 'react';
       }, [toast]);
 
       useEffect(() => {
-        if (typeof currentUserId === 'undefined') {
-          // Still waiting for user to be fetched
-          setIsLoadingSent(true);
-          setIsLoadingCarrying(true);
-          return;
-        }
-        
-        if (currentUserId) { // User is logged in
+        if (currentUserId) {
           fetchShipmentsData(currentUserId);
-        } else { // User is null (logged out) or explicit fetch determined no user
-          fetchShipmentsData(null); // This will clear shipments and set loading to false
+        } else {
+          fetchShipmentsData(null);
         }
       }, [currentUserId, fetchShipmentsData]);
 
@@ -159,7 +127,7 @@ import { useState, useEffect, useCallback } from 'react';
         isLoadingCarrying,
         currentUserId,
         fetchShipments: () => {
-          if (typeof currentUserId !== 'undefined') {
+          if (currentUserId) {
             fetchShipmentsData(currentUserId);
           }
         },

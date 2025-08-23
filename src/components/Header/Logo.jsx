@@ -8,7 +8,7 @@ import React from 'react';
         <img 
           src={NEW_YANKIT_LOGO_URL} 
           alt={`Yankit Logo${isMobile ? ' Mobile' : ''}`} 
-          className={isMobile ? "h-[59px] w-auto" : "h-[59px] md:h-[88px] w-auto"} 
+          className={isMobile ? "h-[59px] w-auto" : "h-[88px] w-auto"} 
         />
       </Link>
     );

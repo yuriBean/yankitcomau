@@ -88,7 +88,7 @@ function handleGlobalEvent(event) {
     event.stopPropagation();
     event.stopImmediatePropagation();
 
-    if (event.type === 'click') {
+    if (['click', 'pointerdown'].includes(event.type)) {
       const editId = editableElement.getAttribute('data-edit-id');
       if (!editId) {
         console.warn('[INLINE EDITOR] Clicked element missing data-edit-id');

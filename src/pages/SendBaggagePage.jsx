@@ -6,11 +6,11 @@ import React, { useState, useEffect, useCallback } from 'react';
     import BaggageSearchForm from '@/components/BaggageSearchForm';
     import BaggageSearchResults from '@/components/BaggageSearchResults';
     import AuthModal from '@/components/auth/AuthModal';
-    import { supabase } from '@/lib/supabaseClient';
+    import { supabase } from '@/lib/customSupabaseClient';
     import { useNavigate, useLocation } from 'react-router-dom';
     import LoadingSpinner from '@/components/ui/LoadingSpinner';
     import { MAX_BAGGAGE_WEIGHT_PER_BAG, MAX_BAGS_PER_LISTING } from '@/config/constants';
-    import { useAuth } from '@/contexts/AuthContext';
+    import { useAuth } from '@/contexts/SupabaseAuthContext';
     import { Button } from '@/components/ui/button';
     import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
@@ -220,14 +220,15 @@ import React, { useState, useEffect, useCallback } from 'react';
     };
 
     const SendBaggagePage = () => {
-      const { session, loading: authLoading } = useAuth();
+      const auth = useAuth();
       const location = useLocation(); 
+      
       const {
         filteredListings, isLoading, pageLoading, isSearching, searchedOnce, currentUserId,
         showAuthModal, stagedSearchCriteria, authModalInitialTab,
         setShowAuthModal, setStagedSearchCriteria,
         handleSearchSubmit, handleAuthenticationSuccess, triggerAuthModal,
-      } = useSendBaggageLogic(session, authLoading);
+      } = useSendBaggageLogic(auth?.session, auth?.loading);
       
       const renderPageContent = () => {
         if (isLoading || isSearching) return <LoadingIndicator message={isSearching ? "Searching for Yankers..." : "Loading available bag yanking offers..."} />;
@@ -240,7 +241,7 @@ import React, { useState, useEffect, useCallback } from 'react';
         return <InitialPromptMessage />;
       };
 
-      if (pageLoading) return <LoadingSpinner fullScreen={true} />;
+      if (pageLoading || auth?.loading || !auth) return <LoadingSpinner fullScreen={true} />;
 
       return (
         <>
@@ -259,7 +260,7 @@ import React, { useState, useEffect, useCallback } from 'react';
           </div>
           <AuthModal 
             isOpen={showAuthModal} 
-            onClose={() => { setShowAuthModal(false); if (!session) setStagedSearchCriteria(null); }}
+            onClose={() => { setShowAuthModal(false); if (!auth?.session) setStagedSearchCriteria(null); }}
             onAuthSuccess={handleAuthenticationSuccess}
             initialTab={authModalInitialTab}
             searchCriteria={stagedSearchCriteria}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-    import { supabase } from '@/lib/customSupabaseClient';
+    import { supabase } from '@/lib/supabaseClient';
     import { useToast } from '@/components/ui/use-toast';
 
     const useChatManager = (currentUserId) => {

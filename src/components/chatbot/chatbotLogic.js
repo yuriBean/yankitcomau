@@ -25,6 +25,7 @@ import { BaggageClaim, Info, Phone, Send as SendIcon, Plane, Search, DollarSign,
       initial: {
         greeting: "Welcome to <span class='font-vernaccia-bold'>Yankit</span>! I'm your virtual assistant. How can I help you today?",
         options: [
+          { id: 'book_flight', text: 'Book a Flight', icon: Plane, nextFlow: 'bookingFlightInfo' },
           { id: 'what_is_yankit', text: 'What is <span class="font-vernaccia-bold">Yankit</span>?', icon: Info, nextFlow: 'aboutYankit' },
           { id: 'how_to_send', text: 'How do I send an item?', icon: SendIcon, nextFlow: 'sendingItemInfo' },
           { id: 'how_to_offer', text: 'How do I offer baggage space?', icon: BaggageClaim, nextFlow: 'offeringBaggageInfo' },
@@ -43,6 +44,7 @@ import { BaggageClaim, Info, Phone, Send as SendIcon, Plane, Search, DollarSign,
           baggage_allowance: 'baggageAllowanceInfo',
           prohibited_items: 'prohibitedItemsInfo',
           safety: 'safetyInfo',
+          flights: 'bookingFlightInfo',
           fees: 'feesInfo',
           payment: 'feesInfo',
           account_issues: 'accountHelp',
@@ -51,16 +53,29 @@ import { BaggageClaim, Info, Phone, Send as SendIcon, Plane, Search, DollarSign,
         }
       },
       aboutYankit: {
-        response: "<span class='font-vernaccia-bold'>Yankit</span> is a peer-to-peer platform connecting people who need to send items (Senders) with travellers who have spare baggage allowance (Yankers). It's a community for more affordable and potentially faster item delivery.",
+        response: "<span class='font-vernaccia-bold'>Yankit</span> is a dual-service platform. We offer competitive flight bookings AND a peer-to-peer service connecting people who need to send items (Senders) with travellers who have spare baggage allowance (Yankers).",
         options: [
+          { id: 'learn_flights_from_about', text: 'Tell me about Flights', icon: Plane, nextFlow: 'bookingFlightInfo' },
           { id: 'learn_sending_from_about', text: 'How to send items', icon: SendIcon, nextFlow: 'sendingItemInfo' },
           { id: 'learn_offering_from_about', text: 'How to offer space', icon: BaggageClaim, nextFlow: 'offeringBaggageInfo' },
           { id: 'main_menu_from_about', text: 'Main Menu', icon: Menu, nextFlow: 'initial' },
         ],
         keywordResponses: {
+          flights: 'bookingFlightInfo',
           send_package: 'sendingItemInfo',
           offer_baggage: 'offeringBaggageInfo',
           main_menu_from_about: 'initial',
+        }
+      },
+      bookingFlightInfo: {
+        response: "Yes, you can book flights directly through <span class='font-vernaccia-bold'>Yankit</span>! We offer competitive prices and a seamless booking experience. Would you like to search for a flight now?",
+        options: [
+            { id: 'go_to_flights', text: 'Yes, Search for a Flight', icon: Plane, action: 'navigate', path: '/flights', nextFlow: 'initial' },
+            { id: 'main_menu_from_flights', text: 'Main Menu', icon: Menu, nextFlow: 'initial' },
+        ],
+        keywordResponses: {
+            go_to_flights: { action: 'navigate', path: '/flights', nextFlow: 'initial' },
+            main_menu_from_flights: 'initial',
         }
       },
       sendingItemInfo: {

@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-    import { useNavigate } from 'react-router-dom';
+
+import React, { useState, useEffect } from 'react';
+    import { useNavigate, useLocation } from 'react-router-dom';
     import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
     import { User, Star, Settings, Briefcase, MessageSquare } from 'lucide-react';
     import { motion } from 'framer-motion';
 
     import DashboardHeader from '@/components/dashboard/DashboardHeader';
-    import DashboardStatsCards from '@/components/dashboard/DashboardStatsCards';
     import DashboardQuickActions from '@/components/dashboard/DashboardQuickActions';
     import DashboardProfileTab from '@/components/dashboard/DashboardProfileTab';
     import DashboardReviewsTab from '@/components/dashboard/DashboardReviewsTab';
@@ -13,8 +13,7 @@ import React, { useState } from 'react';
     import UserAuthGuard from '@/components/bookings/UserAuthGuard';
     import LoadingSpinner from '@/components/ui/LoadingSpinner'; 
     import MyShipmentsTabs from '@/components/shipments/MyShipmentsTabs';
-    import ChatInterface from '@/components/messaging/ChatInterface';
-    import { useAuth } from '@/contexts/AuthContext';
+    import { useAuth } from '@/contexts/SupabaseAuthContext';
     import useDashboardLogic from '@/components/dashboard/hooks/useDashboardLogic';
     import AuthErrorDisplay from '@/components/auth/AuthErrorDisplay';
     import DashboardDataErrorDisplay from '@/components/dashboard/DashboardDataErrorDisplay';
@@ -26,38 +25,68 @@ import React, { useState } from 'react';
     };
 
     const DashboardPageComponent = () => {
-      const { session, loading: authLoading, authError } = useAuth(); 
-      const { profile, loading: dataLoading, stats, handleSignOut, handleProfileUpdate } = useDashboardLogic(session);
-      const [activeTab, setActiveTab] = useState("profile");
-      const navigate = useNavigate();
-
-      const isLoading = authLoading || dataLoading;
-
-      if (authError && !session) {
-        return <AuthErrorDisplay 
-                  onRetry={() => window.location.reload()} 
-                  message="Could not verify your session due to a network issue or server problem. Please check your internet connection and try again."
-                />;
-      }
+      const { session, loading: authLoading, authError, signOut } = useAuth(); 
+      const { 
+        profile, 
+        loading: dataLoading, 
+        stats, 
+        error: dataError,
+        handleProfileUpdate,
+        sentShipments,
+        carryingShipments,
+        isLoadingSent,
+        isLoadingCarrying,
+        fetchAllData
+      } = useDashboardLogic(session);
       
-      if (isLoading && !profile) { 
+      const navigate = useNavigate();
+      const location = useLocation();
+
+      const [activeTab, setActiveTab] = useState(location.state?.defaultTab || "profile");
+      
+      useEffect(() => {
+        if (location.state?.defaultTab) {
+            setActiveTab(location.state.defaultTab);
+        }
+      }, [location.state]);
+
+
+      const isLoading = authLoading || (dataLoading && !profile);
+      
+      if (isLoading) { 
         return <LoadingSpinner fullScreen={true} />;
       }
 
-      if (!session && !authLoading && !authError) { 
+      if (authError) {
+        return <AuthErrorDisplay 
+                  onRetry={() => window.location.reload()} 
+                  message={authError.message || "Could not verify your session. Please check your internet connection and try again."}
+                />;
+      }
+      
+      if (!session) { 
          return <UserAuthGuard onSignIn={() => navigate('/signin', { state: { from: '/dashboard' }})} />;
       }
       
-      if (!profile && !isLoading) { 
-        return <DashboardDataErrorDisplay onRetry={() => window.location.reload()} onGoHome={() => navigate('/')} />;
+      if (dataError && !profile) { 
+        return <DashboardDataErrorDisplay onRetry={() => fetchAllData(session.user)} onGoHome={() => navigate('/')} />;
+      }
+      
+      if (!profile) {
+        return <LoadingSpinner fullScreen={true} />;
       }
 
       const tabItems = [
         { value: "profile", label: "Profile", icon: User, content: <DashboardProfileTab profile={profile} session={session} onProfileUpdate={handleProfileUpdate} stats={stats} /> },
-        { value: "shipments", label: "My Shipments", icon: Briefcase, content: <MyShipmentsTabs session={session} /> },
-        { value: "messages", label: "Messages", icon: MessageSquare, content: <ChatInterface session={session} /> },
+        { value: "shipments", label: "My Shipments", icon: Briefcase, content: <MyShipmentsTabs 
+            sentShipments={sentShipments}
+            carryingShipments={carryingShipments}
+            isLoadingSent={isLoadingSent}
+            isLoadingCarrying={isLoadingCarrying}
+          /> },
+        { value: "messages", label: "Messages", icon: MessageSquare, content: <p className="text-center text-muted-foreground">🚧 This feature isn't implemented yet—but don't worry! You can request it in your next prompt! 🚀</p> },
         { value: "reviews", label: "My Reviews", icon: Star, content: <DashboardReviewsTab userId={session?.user?.id} /> },
-        { value: "settings", label: "Settings", icon: Settings, content: <DashboardSettingsTab onSignOut={handleSignOut} /> },
+        { value: "settings", label: "Settings", icon: Settings, content: <DashboardSettingsTab onSignOut={signOut} /> },
       ];
 
       return (
@@ -69,8 +98,7 @@ import React, { useState } from 'react';
           transition={{ duration: 0.5 }}
           className="container mx-auto py-8 px-4 md:px-6 text-foreground dark:text-slate-100"
         >
-          <DashboardHeader profile={profile} onSignOut={handleSignOut} />
-          <DashboardStatsCards stats={stats} />
+          <DashboardHeader profile={profile} onSignOut={signOut} />
           <DashboardQuickActions />
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
@@ -93,7 +121,7 @@ import React, { useState } from 'react';
             </TabsList>
             {tabItems.map((tab) => (
               <TabsContent key={tab.value} value={tab.value} className="mt-6 bg-card dark:bg-slate-800/40 p-4 md:p-6 rounded-lg shadow-md">
-                 {isLoading && activeTab === tab.value ? <LoadingSpinner /> : tab.content}
+                 {(isLoadingSent || isLoadingCarrying) && activeTab === tab.value ? <LoadingSpinner /> : tab.content}
               </TabsContent>
             ))}
           </Tabs>
@@ -102,3 +130,4 @@ import React, { useState } from 'react';
     };
 
     export default DashboardPageComponent;
+  

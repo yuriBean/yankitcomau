@@ -82,10 +82,15 @@
       * {
         @apply border-border;
       }
+      html {
+        @apply h-full;
+        scroll-behavior: smooth;
+      }
       body {
-        @apply bg-background text-foreground;
+        @apply bg-background text-foreground h-full;
         font-family: var(--font-sans);
         font-feature-settings: "rlig" 1, "calt" 1;
+        overflow-y: scroll; /* Always show scrollbar to prevent layout shifts */
       }
       h1, h2, h3, h4, h5, h6 {
         font-family: var(--font-heading-brand); /* Apply to headings by default if desired */

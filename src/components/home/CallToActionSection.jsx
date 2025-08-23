@@ -2,7 +2,7 @@ import React from 'react';
     import { motion } from 'framer-motion';
     import { Button } from '@/components/ui/button';
     import { Link } from 'react-router-dom';
-    import { PackagePlus, Search, Sparkles } from 'lucide-react';
+    import { Sparkles } from 'lucide-react';
 
     const CallToActionSection = () => {
       return (
@@ -30,7 +30,7 @@ import React from 'react';
                   </Button>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button variant="outline" size="lg" asChild className="w-full sm:w-auto border-2 border-white/80 text-white hover:bg-white/10 hover:text-white shadow-lg px-8 py-3 text-base">
+                  <Button variant="outline" size="lg" asChild className="w-full sm:w-auto bg-transparent border-2 border-white/80 text-white hover:bg-white/10 hover:text-white shadow-lg px-8 py-3 text-base">
                     <Link to="/how-it-works">
                       Learn More
                     </Link>

@@ -1,12 +1,13 @@
+
 import { useState, useEffect, useCallback } from 'react';
     import { useToast } from '@/components/ui/use-toast';
-    import { supabase } from '@/lib/supabaseClient';
+    import { supabase } from '@/lib/customSupabaseClient';
     import { MAX_BAGGAGE_WEIGHT_PER_BAG, MAX_BAGS_PER_LISTING, BASE_EARNING, PER_KM_RATE } from '@/config/constants';
 
     export const useYankABagNowForm = (userId) => {
       const [formData, setFormData] = useState({
-        origin: '',
-        destination: '',
+        origin: null,
+        destination: null,
         departureDate: null,
         numberOfBags: '1',
         availableWeight: MAX_BAGGAGE_WEIGHT_PER_BAG.toString(), 
@@ -70,7 +71,7 @@ import { useState, useEffect, useCallback } from 'react';
         const newErrors = {};
         if (!formData.origin) newErrors.origin = 'Origin airport is required.';
         if (!formData.destination) newErrors.destination = 'Destination airport is required.';
-        if (formData.origin && formData.destination && formData.origin === formData.destination) {
+        if (formData.origin && formData.destination && formData.origin.value === formData.destination.value) {
           newErrors.origin = 'Origin and destination cannot be the same.';
           newErrors.destination = 'Origin and destination cannot be the same.';
         }
@@ -92,8 +93,8 @@ import { useState, useEffect, useCallback } from 'react';
 
       const resetForm = () => {
         setFormData({
-          origin: '',
-          destination: '',
+          origin: null,
+          destination: null,
           departureDate: null,
           numberOfBags: '1',
           availableWeight: MAX_BAGGAGE_WEIGHT_PER_BAG.toString(),
@@ -117,8 +118,8 @@ import { useState, useEffect, useCallback } from 'react';
             const { data: routeData, error: routeError } = await supabase
               .from('flight_routes_data')
               .select('distance_km, base_cost_per_km, service_fee_percentage')
-              .eq('origin_iata', formData.origin)
-              .eq('destination_iata', formData.destination)
+              .eq('origin_iata', formData.origin.value)
+              .eq('destination_iata', formData.destination.value)
               .single();
 
             if (routeError || !routeData) {

@@ -99,28 +99,7 @@ import React, { useState } from 'react';
               throw signUpError;
             }
           } else if (signUpData.user) {
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .insert([
-                { 
-                  id: signUpData.user.id, 
-                  full_name: fullName,
-                  first_name: formData.firstName,
-                  surname: formData.surname,
-                  email: signUpData.user.email, 
-                  avatar_url: signUpData.user.user_metadata?.avatar_url,
-                  updated_at: new Date(),
-                  created_at: new Date(),
-                }
-              ]);
-
-            if (profileError) {
-               toast({
-                title: "Profile Creation Failed",
-                description: profileError.message,
-                variant: "destructive",
-              });
-            }
+            // The profile creation is now handled by the onAuthStateChange listener in SupabaseAuthContext
             
             toast({
               title: "Account Created!",

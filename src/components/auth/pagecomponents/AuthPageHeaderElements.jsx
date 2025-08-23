@@ -12,3 +12,18 @@ import React from 'react';
       </motion.div>
     );
     AnimatedIcon.displayName = 'AnimatedIcon';
+
+    export const AuthPageHeader = ({ children }) => (
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{children}</h1>
+    );
+    AuthPageHeader.displayName = 'AuthPageHeader';
+    
+    export const AuthPageSubHeader = ({ children }) => (
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{children}</p>
+    );
+    AuthPageSubHeader.displayName = 'AuthPageSubHeader';
+    
+    export const AuthPageFooterLink = ({ children }) => (
+        <p className="mt-6 text-center text-sm text-muted-foreground">{children}</p>
+    );
+    AuthPageFooterLink.displayName = 'AuthPageFooterLink';

@@ -9,6 +9,7 @@ import React from 'react';
     import PaymentOptionsSection from '@/components/home/PaymentOptionsSection';
     import NewsletterSignup from '@/components/home/NewsletterSignup';
     import FeaturedRoutesSection from '@/components/home/FeaturedDestinationsSection';
+    import FlightsCallToAction from '@/components/home/FlightsCallToAction'; // New import
 
     const HomePage = () => {
       return (
@@ -18,6 +19,7 @@ import React from 'react';
             title="How <span class='font-vernaccia-bold'>Yankit</span> Works: Simple & Secure"
             subtitle="Follow these easy steps to send or carry items with <span class='font-vernaccia-bold'>Yankit</span>."
           />
+          <FlightsCallToAction /> {/* New section */}
           <AppFeaturesOverview />
           <WhyChooseUsSection />
           <FeaturedRoutesSection />

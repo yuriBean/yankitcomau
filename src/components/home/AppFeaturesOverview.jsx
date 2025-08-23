@@ -25,8 +25,8 @@ import React from 'react';
       },
       {
         icon: <MapPin className="w-8 h-8 text-primary" />,
-        title: "Shipment Tracking (Coming Soon)",
-        description: "Stay updated on your shipment's progress with our upcoming tracking feature."
+        title: "Shipment Tracking",
+        description: "Stay updated on your shipment's progress with real-time tracking from pickup to delivery."
       },
       {
         icon: <Users className="w-8 h-8 text-primary" />,

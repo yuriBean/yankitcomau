@@ -22,7 +22,7 @@ import React from 'react';
           description: "Items you've sent", 
           icon: Send, 
           actionText: "View Sent Items", 
-          actionNav: () => navigate('/my-activity', { state: { defaultTab: 'sentShipments' } }) 
+          actionNav: () => navigate('/dashboard', { state: { defaultTab: 'shipments' } }) 
         },
         { 
           title: "Shipments Carried", 
@@ -30,7 +30,7 @@ import React from 'react';
           description: "Items you've carried", 
           icon: Package, 
           actionText: "View Carried Items", 
-          actionNav: () => navigate('/my-activity', { state: { defaultTab: 'carriedShipments' } }) 
+          actionNav: () => navigate('/dashboard', { state: { defaultTab: 'shipments' } }) 
         },
       ];
 

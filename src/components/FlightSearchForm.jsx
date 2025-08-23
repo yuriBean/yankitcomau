@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
     import { Button } from '@/components/ui/button';
     import { Card, CardContent } from '@/components/ui/card';
     import { Calendar } from "@/components/ui/calendar";
@@ -18,8 +18,7 @@ import React, { useState, useRef, useEffect } from 'react';
       const { toast } = useToast();
       const navigate = useNavigate();
       
-      const initialLegState = { origin: "", destination: "", departureDate: null };
-      const [legs, setLegs] = useState([initialLegState]);
+      const [legs, setLegs] = useState([{ origin: "", destination: "", departureDate: null }]);
       const [tripType, setTripType] = useState('round-trip'); 
       const [returnDate, setReturnDate] = useState(null);
       const [passengers, setPassengers] = useState(1);
@@ -43,13 +42,13 @@ import React, { useState, useRef, useEffect } from 'react';
           setReturnDate(null);
           if (legs.length === 1 && !legs[0].origin && !legs[0].destination && !legs[0].departureDate) {
             setLegs([
-              initialLegState,
-              initialLegState
+              { origin: "", destination: "", departureDate: null },
+              { origin: "", destination: "", departureDate: null }
             ]);
           } else if (legs.length < 2) {
              setLegs(prevLegs => [
               ...prevLegs,
-              initialLegState
+              { origin: "", destination: "", departureDate: null }
             ]);
           }
         }
@@ -75,12 +74,12 @@ import React, { useState, useRef, useEffect } from 'react';
 
       const addLeg = () => {
         if (legs.length < MAX_LEGS) {
-          setLegs([...legs, initialLegState]);
+          setLegs([...legs, { origin: "", destination: "", departureDate: null }]);
         }
       };
 
       const removeLeg = (index) => {
-        if (legs.length > 2) { 
+        if (legs.length > 2) { // Keep at least 2 legs for multi-city
           const newLegs = legs.filter((_, i) => i !== index);
           setLegs(newLegs);
         }
@@ -101,41 +100,32 @@ import React, { useState, useRef, useEffect } from 'react';
       };
       
       const handleDepartureDateSelect = (date) => {
-        if (tripType === 'multi-city') return; 
+        if (tripType === 'multi-city') return; // Should not be called for multi-city here
         handleLegChange(0, 'departureDate', date);
         setDeparturePopoverOpen(false);
         if (tripType === 'round-trip' && returnDateButtonRef.current) {
+          // Timeout to allow popover to close before opening next
           setTimeout(() => {
              setReturnPopoverOpen(true);
+             // returnDateButtonRef.current.click(); // Programmatic click can be problematic
           }, 100);
         }
-      };
-
-      const handleReturnDateSelect = (date) => {
-        setReturnDate(date);
-        setReturnPopoverOpen(false);
       };
 
       const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-
+      
         let missingInfo = false;
         if (tripType === 'multi-city') {
-            legs.forEach(leg => {
-                if (!leg.origin || !leg.destination || !leg.departureDate) {
-                    missingInfo = true;
-                }
-            });
+          legs.forEach(leg => {
+            if (!leg.origin || !leg.destination || !leg.departureDate) missingInfo = true;
+          });
         } else {
-            if (!legs[0].origin || !legs[0].destination || !legs[0].departureDate) {
-                missingInfo = true;
-            }
-            if (tripType === 'round-trip' && !returnDate) {
-                missingInfo = true;
-            }
+          if (!legs[0].origin || !legs[0].destination || !legs[0].departureDate) missingInfo = true;
+          if (tripType === 'round-trip' && !returnDate) missingInfo = true;
         }
-
+      
         if (missingInfo) {
           toast({
             variant: "destructive",
@@ -145,24 +135,45 @@ import React, { useState, useRef, useEffect } from 'react';
           setIsLoading(false);
           return;
         }
-        
-        toast({
-          title: "Searching for flights...",
-          description: `Trip type: ${tripType}`,
-        });
 
-        await new Promise(resolve => setTimeout(resolve, 1500)); 
-
-        setIsLoading(false);
-        navigate('/flights', { state: { 
-            legs: tripType === 'multi-city' ? legs : [legs[0]], 
-            returnDate: tripType === 'round-trip' ? returnDate : null, 
-            tripType, 
-            passengers, 
-            cabinClass 
-        }});
-      };
       
+        try {
+          const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/search`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              legs: tripType === 'multi-city' ? legs : [legs[0]],
+              returnDate: tripType === 'round-trip' ? returnDate : null,
+              passengers,
+              cabinClass,
+            }),
+          });
+      
+          const data = await res.json();
+      
+          if (!res.ok) throw new Error(data.message || "Search failed");
+      
+          navigate('/flights', {
+            state: {
+              offers: data.data, 
+              tripType,
+              legs,
+              returnDate,
+              passengers,
+              cabinClass,
+            }
+          });
+        } catch (err) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: err.message,
+          });
+        }
+      
+        setIsLoading(false);
+      };
+            
       const isReturnCalendarDisabled = tripType === 'one-way' ? true : (d) => legs[0]?.departureDate && d < new Date(legs[0].departureDate).setDate(new Date(legs[0].departureDate).getDate() + 0) && d < legs[0].departureDate;
 
 
@@ -173,8 +184,8 @@ import React, { useState, useRef, useEffect } from 'react';
           transition={{ duration: 0.5, delay: 0.1 }}
           className="w-full"
         >
-          <Card className="w-full shadow-2xl glassmorphism border-none p-0 md:p-2">
-            <CardContent className="p-3 md:p-4">
+      <Card className="w-full shadow-2xl bg-primary/20 dark:bg-slate-800 border-none p-0 md:p-2">
+      <CardContent className="p-3 md:p-4">
               <div className="flex flex-wrap gap-2 mb-3 md:mb-4">
                 {['round-trip', 'one-way', 'multi-city'].map(type => (
                   <Button
@@ -182,7 +193,11 @@ import React, { useState, useRef, useEffect } from 'react';
                     type="button"
                     variant={tripType === type ? 'secondary' : 'ghost'}
                     onClick={() => handleTripTypeChange(type)}
-                    className="rounded-full text-xs md:text-sm px-3 py-1 h-auto md:px-4 md:py-2 capitalize"
+                    className={`rounded-full text-xs md:text-sm px-3 py-1 h-auto md:px-4 md:py-2 capitalize transition-colors duration-200 text-white 
+                      ${tripType === type 
+                        ? 'bg-blue-800 hover:bg-blue-700' 
+                        : 'bg-primary/30 hover:bg-primary/40' 
+                      }`}
                     disabled={isLoading}
                   >
                     {type.replace('-', ' ')}
@@ -242,7 +257,7 @@ import React, { useState, useRef, useEffect } from 'react';
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0 bg-background dark:bg-slate-800 border-border">
-                           <Calendar mode="single" selected={returnDate} onSelect={handleReturnDateSelect}
+                           <Calendar mode="single" selected={returnDate} onSelect={(date) => { setReturnDate(date); setReturnPopoverOpen(false); }}
                             disabled={isReturnCalendarDisabled || isLoading} initialFocus />
                         </PopoverContent>
                       </Popover>
@@ -331,7 +346,7 @@ import React, { useState, useRef, useEffect } from 'react';
                         </Select>
                     </div>
 
-                    <Button type="submit" className="w-full md:w-auto text-lg py-3 md:px-6 bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity flex items-center justify-center space-x-2" disabled={isLoading}>
+                    <Button type="submit" className="w-full md:w-auto text-lg py-3 md:px-6 bg-blue-800 text-white hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2" disabled={isLoading}>
                       {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search size={20} />}
                       <span>{isLoading ? 'Searching...' : 'Search Flights'}</span>
                     </Button>
