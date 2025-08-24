@@ -28,7 +28,7 @@ const FlightsCallToAction = () => {
               </h2>
               <p className="text-lg md:text-xl mb-8 max-w-2xl mx-auto opacity-90">Find the perfect flight for your next adventure or to connect with your baggage. Seamlessly search and book with Yankit for a seamless travel experience.</p>
               <Button asChild className="bg-white text-blue-600 hover:bg-gray-100 dark:bg-slate-100 dark:text-blue-800 dark:hover:bg-slate-200 text-lg px-8 py-6 rounded-full shadow-lg transform transition-all duration-300 hover:scale-105">
-                <Link to="/flights">
+                <Link to="/flights-search">
                   Explore Flights
                 </Link>
               </Button>
