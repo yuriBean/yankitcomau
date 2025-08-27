@@ -51,7 +51,7 @@ import React, { Suspense } from 'react';
       </div>
     );
     AppLoadingScreen.displayName = 'AppLoadingScreen';
-    
+     
     const routesConfig = [
       { path: "/", element: <HomePage />, name: "Home" },
       { path: "/flights-search", element: <FlightsPage />, name: "Flights" },
