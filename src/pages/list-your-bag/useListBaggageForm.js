@@ -45,7 +45,7 @@ import { useForm } from 'react-hook-form';
                         .select('distance_km, yanker_earnings')
                         .eq('origin_iata', origin.value)
                         .eq('destination_iata', destination.value)
-                        .single();
+                        .maybeSingle();
 
                     if (error || !data) {
                         setEstimatedDistance(null);

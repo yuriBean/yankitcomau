@@ -2,7 +2,7 @@ import React from 'react';
     import { Link, useNavigate } from 'react-router-dom';
     import { Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 
-    const NEW_YANKIT_LOGO_URL = "https://storage.googleapis.com/hostinger-horizons-assets-prod/4502ea55-58dc-4fdb-b457-d141a545e2dc/756040d54ee0518febe5fefe57bb02ac.png"; 
+    const NEW_YANKIT_LOGO_URL = "/logo.webp"; 
 
     const Footer = () => {
       const currentYear = new Date().getFullYear();

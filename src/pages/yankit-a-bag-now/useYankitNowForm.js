@@ -119,7 +119,7 @@ import { useState, useEffect, useCallback } from 'react';
               .select('distance_km, base_cost_per_km, service_fee_percentage')
               .eq('origin_iata', formData.origin)
               .eq('destination_iata', formData.destination)
-              .single();
+              .maybeSingle();
 
             if (routeError || !routeData) {
               let msg = 'Route data not found for this selection. Ensure it is a valid direct route.';

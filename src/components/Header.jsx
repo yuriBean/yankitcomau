@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
     import { supabase } from '@/lib/supabaseClient';
     import { useToast } from '@/components/ui/use-toast';
 
-    const YANKIT_LOGO_URL = "https://storage.googleapis.com/hostinger-horizons-assets-prod/4502ea55-58dc-4fdb-b457-d141a545e2dc/89e5746b30695503af8e040564b069fb.png";
+    const YANKIT_LOGO_URL = "/logo.webp";
 
     const navLinks = [
       { name: 'Home', path: '/', icon: Home },

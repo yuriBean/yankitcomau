@@ -85,8 +85,8 @@ const YankABagNowPage = () => {
     try {
       const { error } = await supabase.from('listings').insert({
         user_id: session.user.id,
-        origin: dataToSubmit.origin.value,
-        destination: dataToSubmit.destination.value,
+        origin: dataToSubmit.origin.iata,
+        destination: dataToSubmit.destination.iata,
         departure_date: dataToSubmit.departureDate,
         available_space_kg: dataToSubmit.availableWeight,
         number_of_bags: parseInt(dataToSubmit.numberOfBags, 10),

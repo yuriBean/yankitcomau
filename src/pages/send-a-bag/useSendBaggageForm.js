@@ -119,7 +119,7 @@ import { useState, useEffect, useCallback } from 'react';
               .select('sender_shipping_cost')
               .eq('origin_iata', formData.origin.value)
               .eq('destination_iata', formData.destination.value)
-              .single();
+              .maybeSingle();
               
             if (routeError || !routeData) {
               let msg = 'Cost data not found for this selection. Ensure it is a valid direct route.';
