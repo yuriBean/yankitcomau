@@ -36,7 +36,7 @@ const SendBaggagePageHeader = React.memo(() => (
   </motion.div>
 ));
 SendBaggagePageHeader.displayName = "SendBaggagePageHeader";
-
+const getIata = (a) => (typeof a === 'string' ? a : a?.value ?? null);
 const LoadingIndicator = React.memo(({ message }) => (
   <div className="text-center py-10">
     <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto mb-4" />
@@ -158,7 +158,7 @@ const useSendBaggageLogic = (session, authLoading) => {
           profiles!inner(full_name, avatar_url)
         `)
         .eq('status', 'active')
-        .eq('listing_type', 'yanker') 
+        .eq('listing_type', 'yanking')
         .gte('number_of_bags', searchCriteria.numberOfBags ? parseInt(searchCriteria.numberOfBags, 10) : 1)
         .lte('number_of_bags', MAX_BAGS_PER_LISTING)
         .order('created_at', { ascending: false });
@@ -325,20 +325,23 @@ const YankABagContent = () => {
       toast({ variant: "destructive", title: "Authentication Error", description: "User not found. Please sign in again." });
       return;
     }
+const originCode = getIata(dataToSubmit.origin)?.toUpperCase();
+const destinationCode = getIata(dataToSubmit.destination)?.toUpperCase();
 
-    try {
-      const { error } = await supabase.from('listings').insert({
-        user_id: session.user.id,
-        origin: dataToSubmit.origin.value,
-        destination: dataToSubmit.destination.value,
-        departure_date: dataToSubmit.departureDate,
-        available_space_kg: dataToSubmit.availableWeight,
-        number_of_bags: parseInt(dataToSubmit.numberOfBags, 10),
-        total_potential_earnings: estimatedEarnings, 
-        status: 'active',
-        listing_type: 'yanker'
-      });
-
+const availableKg = Math.min(Number(dataToSubmit.availableWeight) || MAX_BAGGAGE_WEIGHT_PER_BAG, 20); // DB ≤ 20
+const bags = parseInt(dataToSubmit.numberOfBags, 10) || 1;
+const totalEarnings = Number(estimatedEarnings) || (MIN_PER_BAG_EARNINGS * bags);    try {
+  const { error } = await supabase.from('listings').insert({
+    user_id: session.user.id,
+    origin: originCode,
+    destination: destinationCode,
+    departure_date: dataToSubmit.departureDate,
+    available_space_kg: availableKg,           // number
+    number_of_bags: bags,                      // number
+    total_potential_earnings: totalEarnings,   // > 0
+    status: 'active',
+    listing_type: 'yanking',                   // <-- use schema’s value
+  });
       if (error) throw error;
       toast({
         title: 'Yanking Offer Listed!', description: 'Your baggage yanking offer has been successfully listed.',

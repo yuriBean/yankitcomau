@@ -12,15 +12,21 @@ import React from 'react';
 
     const ListYourBagPage = () => {
       const { loading: authLoading } = useAuth(); 
-      const { form, isLoading, estimatedDistance, estimatedEarnings, onSubmit } = useListBaggageForm();
-      const { watch, formState: { errors } } = form;
-      
+      const { form, isLoading, estimatedDistance, estimatedEarnings, onSubmit, estimateAttempted } = useListBaggageForm();      const { watch, formState: { errors } } = form;
+      const getIata = (a) => (typeof a === 'string' ? a : a?.value ?? null);
       const origin = watch('origin');
       const destination = watch('destination');
       const numberOfBags = watch('number_of_bags');
-
-      const isCalculationUnavailable = origin && destination && estimatedDistance === null && estimatedEarnings === null && origin?.value !== destination?.value;
-
+      
+      const o = (getIata(origin) || '').toUpperCase();
+      const d = (getIata(destination) || '').toUpperCase();
+      
+      const isCalculationUnavailable =
+        estimateAttempted &&
+        !!o && !!d &&
+        o !== d &&
+        estimatedDistance === null &&
+        estimatedEarnings === null;
       return (
         <div className="container mx-auto py-12 px-4 md:px-6 min-h-[calc(100vh-180px)]">
           <ListYourBagPageHeader />

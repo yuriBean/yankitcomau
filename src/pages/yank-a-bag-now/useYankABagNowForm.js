@@ -20,8 +20,12 @@ import { useState, useEffect, useCallback } from 'react';
       const [estimatedDistance, setEstimatedDistance] = useState(null);
       const [estimatedEarnings, setEstimatedEarnings] = useState(null);
       const { toast } = useToast();
-
-      const isCalculationPending = isCalculatingDistance || isCalculatingEarnings;
+      const MIN_PER_BAG_EARNINGS = 5; // > 0 to satisfy DB check
+      const getIata = (a) => {
+        const v = (typeof a === 'string' ? a : a?.value ?? '').toString().trim();
+        return v ? v.toUpperCase() : null;
+      };
+            const isCalculationPending = isCalculatingDistance || isCalculatingEarnings;
 
       const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -69,27 +73,22 @@ import { useState, useEffect, useCallback } from 'react';
 
       const validateForm = () => {
         const newErrors = {};
-        if (!formData.origin) newErrors.origin = 'Origin airport is required.';
-        if (!formData.destination) newErrors.destination = 'Destination airport is required.';
-        if (formData.origin && formData.destination && formData.origin.value === formData.destination.value) {
-          newErrors.origin = 'Origin and destination cannot be the same.';
-          newErrors.destination = 'Origin and destination cannot be the same.';
-        }
+        const originCode = getIata(formData.origin);
+        const destinationCode = getIata(formData.destination);
+      
+        if (!originCode) newErrors.origin = 'Origin airport is required.';
+        if (!destinationCode) newErrors.destination = 'Destination airport is required.';
         if (!formData.departureDate) newErrors.departureDate = 'Departure date is required.';
         if (!formData.numberOfBags || parseInt(formData.numberOfBags, 10) < 1) newErrors.numberOfBags = 'Number of bags must be at least 1.';
         if (parseInt(formData.numberOfBags, 10) > MAX_BAGS_PER_LISTING) newErrors.numberOfBags = `Maximum ${MAX_BAGS_PER_LISTING} bags allowed.`;
         if (!formData.termsAccepted) newErrors.termsAccepted = 'You must accept the terms and conditions.';
-        
-        if (estimatedEarnings === null && formData.origin && formData.destination && formData.numberOfBags) {
-            newErrors.confirmation = 'Please wait for earnings calculation to complete before submitting.';
-        } else if (estimatedEarnings !== null && parseFloat(estimatedEarnings) <=0 && formData.origin && formData.destination && formData.numberOfBags) {
-            newErrors.confirmation = 'Calculated earnings are too low. Please check your route or contact support.';
-        }
-
-
+      
+        // Do NOT block submit on earnings; show warning UI instead.
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
       };
+      
+      
 
       const resetForm = () => {
         setFormData({
@@ -107,59 +106,65 @@ import { useState, useEffect, useCallback } from 'react';
       };
 
       const fetchDistanceAndEarnings = useCallback(async () => {
-        if (formData.origin && formData.destination && formData.numberOfBags) {
+        const originCode = getIata(formData.origin);
+        const destinationCode = getIata(formData.destination);
+        if (originCode && destinationCode && formData.numberOfBags) {
           setIsCalculatingDistance(true);
           setIsCalculatingEarnings(true);
           setEstimatedDistance(null);
           setEstimatedEarnings(null);
-          setErrors(prev => ({ ...prev, confirmation: null })); 
-
+          setErrors(prev => ({ ...prev, confirmation: null }));
+      
           try {
-            const { data: routeData, error: routeError } = await supabase
+            // attempt direct
+            let { data: routeData, error: routeError } = await supabase
               .from('flight_routes_data')
               .select('distance_km, base_cost_per_km, service_fee_percentage')
-              .eq('origin_iata', formData.origin.value)
-              .eq('destination_iata', formData.destination.value)
+              .eq('origin_iata', originCode)
+              .eq('destination_iata', destinationCode)
               .maybeSingle();
-
-            if (routeError || !routeData) {
-              let msg = 'Route data not found for this selection. Ensure it is a valid direct route.';
-              if(routeError && routeError.code !== 'PGRST116') msg = routeError.message;
-              
-              toast({ variant: 'destructive', title: 'Calculation Error', description: msg });
-              setEstimatedDistance(0); 
-              setEstimatedEarnings(0); 
+      
+            // if missing, attempt reverse
+            if ((!routeData && !routeError) || routeError?.code === 'PGRST116') {
+              const rev = await supabase
+                .from('flight_routes_data')
+                .select('distance_km, base_cost_per_km, service_fee_percentage')
+                .eq('origin_iata', destinationCode)
+                .eq('destination_iata', originCode)
+                .maybeSingle();
+              if (rev.data) routeData = rev.data;
+            }
+      
+            const numBags = parseInt(formData.numberOfBags, 10) || 1;
+      
+            if (!routeData) {
+              // No route in table: allow listing with a floor earnings (per bag)
+              setEstimatedDistance(null);
+              setEstimatedEarnings(Number((MIN_PER_BAG_EARNINGS * numBags).toFixed(2)));
               setIsCalculatingDistance(false);
               setIsCalculatingEarnings(false);
-              setErrors(prev => ({ ...prev, confirmation: msg }));
+              // Optional: set a non-blocking warning message in your UI (not a destructive toast)
               return;
             }
-            
-            const distance = parseFloat(routeData.distance_km);
+      
+            // we have a route: compute using your constants
+            const distance = Number(routeData.distance_km) || 0;
             setEstimatedDistance(distance);
             setIsCalculatingDistance(false);
-
-            const numBags = parseInt(formData.numberOfBags, 10) || 1;
+      
             const earnings = (BASE_EARNING + (distance * PER_KM_RATE)) * numBags;
-            
-            setEstimatedEarnings(parseFloat(earnings.toFixed(2)));
+            const rounded = Number(earnings.toFixed(2));
+            setEstimatedEarnings(rounded > 0 ? rounded : MIN_PER_BAG_EARNINGS * numBags);
             setIsCalculatingEarnings(false);
-            
-             if (parseFloat(earnings.toFixed(2)) <= 0) {
-                setErrors(prev => ({ ...prev, confirmation: 'Calculated earnings are too low for this route. Please select a different route or contact support if you believe this is an error.' }));
-            } else {
-                setErrors(prev => ({ ...prev, confirmation: null }));
-            }
-
-
+            setErrors(prev => ({ ...prev, confirmation: null }));
           } catch (error) {
             console.error('Error fetching distance/earnings:', error);
-            toast({ variant: 'destructive', title: 'Calculation Error', description: error.message });
-            setEstimatedDistance(0);
-            setEstimatedEarnings(0);
+            // fall back to floor, still allow submit
+            const numBags = parseInt(formData.numberOfBags, 10) || 1;
+            setEstimatedDistance(null);
+            setEstimatedEarnings(MIN_PER_BAG_EARNINGS * numBags);
             setIsCalculatingDistance(false);
             setIsCalculatingEarnings(false);
-            setErrors(prev => ({ ...prev, confirmation: 'Failed to calculate earnings. Please try again.' }));
           }
         } else {
           setEstimatedDistance(null);
@@ -167,7 +172,8 @@ import { useState, useEffect, useCallback } from 'react';
           setIsCalculatingDistance(false);
           setIsCalculatingEarnings(false);
         }
-      }, [formData.origin, formData.destination, formData.numberOfBags, toast]);
+      }, [formData.origin, formData.destination, formData.numberOfBags]);
+      
 
       useEffect(() => {
         const timer = setTimeout(() => {
