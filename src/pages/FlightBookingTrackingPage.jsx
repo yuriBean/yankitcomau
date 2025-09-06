@@ -168,7 +168,7 @@ import React, { useState, useEffect, useCallback } from 'react';
                 <p><strong>Route:</strong> {flight.from} to {flight.to}</p>
                 <p><strong>Airline:</strong> {flight.airline}</p>
                 <p><strong>Departure:</strong> {new Date(flight.departureDate).toLocaleDateString()} at {flight.departureTime}</p>
-                <p className="text-lg font-bold text-primary dark:text-secondary mt-2">Total Amount: {bookingDetails.total_price_ssp} SSP</p>
+                <p className="text-lg font-bold text-primary dark:text-secondary mt-2">Total Amount: {flight.price} {flight.currency}</p>
               </div>
 
               <div className="space-y-4">

@@ -128,70 +128,95 @@ const FlightResultsPage = () => {
     }
   }, [searchCriteria, fetchFlights]);
 
-  const handleBookFlight = async (flightOffer) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-      toast({
-        variant: "destructive",
-        title: "Authentication Required",
-        description: "Please sign in to book.",
-      });
-      navigate('/signin', { state: { from: '/flights', searchState: searchCriteria } });
-      return null;
-    }
+// FlightResultsPage.jsx
+const handleBookFlight = async (flightOffer) => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) {
+    toast({ variant: "destructive", title: "Authentication Required", description: "Please sign in to book." });
+    navigate('/signin', { state: { from: '/flights', searchState: searchCriteria } });
+    return null;
+  }
 
-    try {
-      const { data, error } = await supabase.functions.invoke('create-duffel-order', {
-        body: { selectedOfferId: flightOffer.id },
-      });
+  const offerPassengerIds = flightOffer.rawOfferData?.passengers?.map(p => p.id) || [];
+  const paxCount = Math.min(
+    Math.max(1, Number(searchCriteria?.passengers ?? 1)),
+    offerPassengerIds.length // must not exceed priced passengers
+  );
+  
+  // Build passengers array WITH the priced IDs
+  const passengersPayload = Array.from({ length: paxCount }).map((_, i) => ({
+    id: offerPassengerIds[i],       
+    title: "mr",                  
+    given_name: "John",
+    family_name: "Smith",
+    born_on: "1990-01-01",         // YYYY-MM-DD
+    gender: "m",                // "male" | "female"
+    email: session.user.email || "john.smith@example.com",
+    phone_number: "+61400000000",  // E.164 format
+  }));
 
-      if (error || data.error) throw new Error(error?.message || data.error);
-
-      const duffelOrder = data.data;
-
-      const bookingData = {
-        user_id: session.user.id,
-        flight_details: {
-          ...flightOffer,
-          duffel_order_id: duffelOrder.id,
-        },
-        total_price_ssp: flightOffer.price,
-        payment_method: 'duffel_hosted_checkout',
-        payment_status: 'pending_provider',
-        booking_status: 'initiated_api',
-        baggage_allowance_info: flightOffer.standardBaggage,
-        duffel_order_id: duffelOrder.id,
-      };
-
-      const { data: newBooking, error: bookingError } = await supabase
-        .from('flight_bookings')
-        .insert(bookingData)
-        .select()
-        .single();
-
-      if (bookingError) throw bookingError;
-
-      const payUrl = duffelOrder.actions?.pay?.url;
-      if (payUrl) {
-        toast({ title: "Redirecting to Payment", description: "Complete your booking.", duration: 7000 });
-        navigate(`/payment/flight/${newBooking.id}`);
-      } else {
-        toast({ title: "Order Created", description: `Order ${duffelOrder.id} confirmed.`, duration: 10000 });
-        navigate(`/tracking/flight/${newBooking.id}`);
-        onPromptBaggageListing(flightOffer);
-      }
-
-      return newBooking.id;
-    } catch (err) {
-      console.error("Duffel booking error:", err);
-      toast({
-        variant: "destructive",
-        title: "Booking Failed",
-        description: err.message,
-      });
-      return null;
-    }
+  const orderPayload = {
+    selected_offers: [flightOffer.id],
+    type: "hold",
+    passengers: passengersPayload,
+    // payments: [
+    //   {
+    //     type: "balance",                   // or "payment_card" if you have Duffel Payments
+    //     amount: flightOffer.price.toFixed(2),
+    //     currency: flightOffer.currency,
+    //   },
+    // ],
   };
+
+  // 👀 PROVE what we are sending
+  console.log("[client] orderPayload being sent:", JSON.parse(JSON.stringify(orderPayload)));
+
+  try {
+    const { data, error } = await supabase.functions.invoke("create-duffel-order", {
+      body: { orderPayload },
+    });
+    if (error || data?.error) throw new Error(error?.message || data?.error);
+
+    const duffelOrder = data.data; // v2 returns { data: { ... } }
+
+    // NOTE: only insert columns that actually exist in your table
+    const bookingData = {
+      user_id: session.user.id,
+      flight_details: { ...flightOffer, duffel_order_id: duffelOrder.id },
+    
+      total_amount: flightOffer.price,
+      total_currency: flightOffer.currency,
+    
+      payment_method: "bank_deposit_ssp",
+      payment_status: "pending_deposit",
+      booking_status: "initiated",
+    };
+        
+    const { data: newBooking, error: bookingError } = await supabase
+      .from("flight_bookings")
+      .insert(bookingData)
+      .select()
+      .single();
+    if (bookingError) throw bookingError;
+
+    const payUrl = duffelOrder.actions?.pay?.url;
+    if (payUrl) {
+      toast({ title: "Redirecting to Payment", description: "Complete your booking.", duration: 7000 });
+      navigate(`/payment/flight/${newBooking.id}`);
+    } else {
+      toast({ title: "Order Created", description: `Order ${duffelOrder.id} confirmed.` });
+      navigate(`/tracking/flight/${newBooking.id}`);
+    }
+
+    return newBooking.id;
+  } catch (err) {
+    console.error("Duffel booking error:", err);
+    toast({ variant: "destructive", title: "Booking Failed", description: err.message });
+    return null;
+  }
+};
+
+  
 
   const onPromptBaggageListing = (flight) => {
     setPromptFlightDetails(flight);

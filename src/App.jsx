@@ -76,7 +76,7 @@ import React, { Suspense } from 'react';
       { path: "/payment/flight/:bookingId", element: <FlightBookingPaymentPage />, isProtected: true, name: "Flight Payment" },
       { path: "/payment/shipment/:shipmentId", element: <ShipmentPaymentPage />, isProtected: true, name: "Shipment Payment" },
       { path: "/create-shipment-and-pay", element: <CreateShipmentAndPayPage />, isProtected: true, name: "Create Shipment And Pay" },
-      { path: "/tracking/:bookingId", element: <FlightBookingTrackingPage />, isProtected: true, name: "Flight Tracking" },
+      { path: "/tracking/flight/:bookingId", element: <FlightBookingTrackingPage />, isProtected: true, name: "Flight Tracking" },      
       { path: "/shipment-tracking/:shipmentId", element: <ShipmentTrackingPage />, isProtected: true, name: "Shipment Tracking" },
       { path: "/about", element: <AboutPage />, name: "About Us" },
       { path: "/careers", element: <CareersPage />, name: "Careers" },
