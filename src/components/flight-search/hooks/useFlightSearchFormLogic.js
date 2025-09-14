@@ -94,7 +94,7 @@ import { useState, useEffect, useCallback } from 'react';
           } else if (edgeData) {
             toast({
               title: "Path Details Calculated",
-              description: `Est. Distance: ${Number(edgeData.totalDistance || 0).toFixed(0)} km, Est. Price: ${Number(edgeData.totalPrice || 0).toFixed(2)} ${edgeData.priceUnit || 'AUD'}. Fetching flights...`,
+              description: `Est. Distance: ${Number(edgeData.totalDistance || 0).toFixed(0)} km, Est. Price: ${Number(edgeData.totalPrice || 0).toFixed(2)} ${edgeData.priceUnit || 'USD'}. Fetching flights...`,
               duration: 5000,
             });
             return edgeData;

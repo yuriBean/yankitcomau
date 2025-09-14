@@ -61,7 +61,7 @@ import React, {useState} from 'react';
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               amount: amountCents,
-              currency: "aud",
+              currency: "usd",
               listingId,
               travelerUserId: travellerUserId,
               shipperUserId: currentUserId,

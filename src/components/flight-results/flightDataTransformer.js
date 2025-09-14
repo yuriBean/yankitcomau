@@ -75,7 +75,7 @@ import { format, parseISO, isValid } from 'date-fns';
         stops: dbFlight.layover_airports && dbFlight.layover_airports.length > 0 ? `${dbFlight.layover_airports.length} stop(s)` : 'Direct',
         layovers: dbFlight.layover_airports || [],
         price: parseFloat(dbFlight.price),
-        currency: 'AUD', 
+        currency: 'USD', 
         standardBaggage: 'Standard baggage included', 
         distance: parseFloat(dbFlight.distance),
         deeplink: null, 
