@@ -11,6 +11,7 @@ import NoResultsState from '@/components/flight-search/NoResultsState';
 import NoSearchState from '@/components/flight-search/NoSearchState';
 // import MainActionsBar from '@/components/flight-search/MainActionsBar';
 import { supabase } from '@/lib/supabaseClient';
+import PassengerDetailsModal from '../components/flight-results/PassengerDetailsModal';
 
 const transformDuffelOffersToFlights = (offers) => {
   if (!offers || offers.length === 0) return [];
@@ -82,7 +83,9 @@ const FlightResultsPage = () => {
   const [searchCriteria, setSearchCriteria] = useState(location.state || null);
   const [isPromptOpen, setIsPromptOpen] = useState(false);
   const [promptFlightDetails, setPromptFlightDetails] = useState(null);
-
+  const [showPaxModal, setShowPaxModal] = useState(false);
+  const [flightToBook, setFlightToBook] = useState(null);
+  const [paxCountForOffer, setPaxCountForOffer] = useState(1);
   const fetchFlights = useCallback(async (criteria) => {
     setIsLoading(true);
 
@@ -131,6 +134,82 @@ const FlightResultsPage = () => {
 // put this near the top of your file
 const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 
+const startBookingWithModal = async (flightOffer) => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) {
+    toast({ variant: "destructive", title: "Authentication Required", description: "Please sign in to book." });
+    navigate("/signin", { state: { from: "/flights", searchState: searchCriteria } });
+    return;
+  }
+
+  const offerPassengerIds = flightOffer.rawOfferData?.passengers?.map(p => p.id) || [];
+  const paxCount = Math.min(
+    Math.max(1, Number(searchCriteria?.passengers ?? 1)),
+    offerPassengerIds.length || 1
+  );
+
+  setFlightToBook(flightOffer);
+  setPaxCountForOffer(paxCount);
+  setShowPaxModal(true);
+};
+
+const submitPassengersAndBook = async (passengersFromModal) => {
+  if (!flightToBook) return;
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const offerPassengerIds = flightToBook.rawOfferData?.passengers?.map(p => p.id) || [];
+
+    // Attach Duffel passenger IDs in order
+    const passengersPayload = passengersFromModal.map((p, i) => ({
+      id: offerPassengerIds[i],   // important: Duffel expects IDs returned with the offer
+      ...p,
+    }));
+
+    const resp = await fetch(`${API_BASE}/book`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        selectedOfferId: flightToBook.id,
+        passengers: passengersPayload,
+        orderType: "instant",
+        payment: {
+          type: "balance",
+          amount: flightToBook.price.toFixed(2),
+          currency: flightToBook.currency,
+        },
+      }),
+    });
+
+    if (!resp.ok) {
+      const errTxt = await resp.text();
+      throw new Error(errTxt || "Booking request failed");
+    }
+
+    const booking = await resp.json(); // { data: { ...duffelOrder } }
+    const duffelOrder = booking.data;
+
+    const payUrl = duffelOrder?.actions?.pay?.url;
+
+    if (payUrl) {
+      toast({ title: "Redirecting to Payment", description: "Complete your booking.", duration: 7000 });
+      // If you have an internal payment page, go there:
+      // navigate(`/payment/flight/${duffelOrder.id}`);
+      // Or, if you want to go directly to Duffel's pay URL:
+      window.location.href = payUrl;
+    } else {
+      toast({ title: "Order Created", description: `Order ${duffelOrder.id} confirmed.` });
+      // Navigate to a tracking/confirmation page if you have one
+      // navigate(`/tracking/flight/${duffelOrder.id}`);
+    }
+  } catch (err) {
+    console.error("Duffel booking error:", err);
+    toast({ variant: "destructive", title: "Booking Failed", description: err.message });
+  } finally {
+    setShowPaxModal(false);
+    setFlightToBook(null);
+  }
+};
 const handleBookFlight = async (flightOffer) => {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user) {
@@ -244,7 +323,7 @@ const handleBookFlight = async (flightOffer) => {
             <FlightCard
               key={flight.id}
               flight={flight}
-              onBookDuffel={handleBookFlight}
+              onBookDuffel={startBookingWithModal}
               isLoading={isLoading}
               onPromptBaggageListing={onPromptBaggageListing}
               searchState={searchCriteria}
@@ -255,6 +334,16 @@ const handleBookFlight = async (flightOffer) => {
       ) : (
         <NoResultsState onModifySearch={() => navigate('/')} />
       )}
+
+<PassengerDetailsModal
+        open={showPaxModal}
+        onClose={() => setShowPaxModal(false)}
+        paxCount={paxCountForOffer}
+        onSubmit={submitPassengersAndBook}
+        // optional: prefill from auth profile if you have it
+        defaultEmail=""
+        defaultPhone=""
+      />
 
       {/* <BaggageListingPromptModal
         isOpen={isPromptOpen}
