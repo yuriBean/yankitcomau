@@ -79,6 +79,7 @@ import React, { useState } from 'react';
             email: formData.email,
             password: formData.password,
             options: {
+              emailRedirectTo: `${window.location.origin}/auth/callback`,
               data: {
                 full_name: fullName,
                 first_name: formData.firstName,
@@ -99,7 +100,15 @@ import React, { useState } from 'react';
               throw signUpError;
             }
           } else if (signUpData.user) {
-            // The profile creation is now handled by the onAuthStateChange listener in SupabaseAuthContext
+            if (Array.isArray(signUpData.user.identities) && signUpData.user.identities.length === 0) {
+                  toast({
+                   title: "Email Already Registered",
+                    description: "Try signing in or use 'Forgot password' to verify your email.",
+                    variant: "destructive",
+                  });
+                  setIsSubmitting(false);
+                  return;
+                }
             
             toast({
               title: "Account Created!",

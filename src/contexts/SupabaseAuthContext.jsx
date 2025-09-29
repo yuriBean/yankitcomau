@@ -71,9 +71,10 @@ import React, { createContext, useState, useEffect, useContext, useCallback } fr
             toast({ title: "Session Error", description: `Failed to fetch session: ${sessionError.message}`, variant: "destructive" });
           } else {
             setSession(currentSession);
-            if (currentSession?.user) {
-              await createProfileIfNeeded(currentSession.user);
-            }
+            if (currentSession?.user) {as
+              if (currentSession.user.email_confirmed_at) {
+                   await createProfileIfNeeded(currentSession.user);
+                  }            }
           }
           setUserLoading(false);
         };
@@ -85,7 +86,10 @@ import React, { createContext, useState, useEffect, useContext, useCallback } fr
             setAuthError(null);
             
             if (_event === 'SIGNED_IN' && newSession?.user) {
+              const confirmed = !!newSession.user.email_confirmed_at;
+              if (confirmed) {
               await createProfileIfNeeded(newSession.user);
+              }
             }
 
             if (_event === 'SIGNED_OUT') {
