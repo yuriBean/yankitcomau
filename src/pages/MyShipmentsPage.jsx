@@ -90,6 +90,23 @@ import React, { useEffect } from 'react';
       
       useAuthGuardMyShipments(currentUserId, isLoadingUser, navigate, location, toast);
       useChatRedirectHandler(location, currentUserId, handleOpenChat, navigate);
+
+        React.useEffect(() => {
+            const sp = new URLSearchParams(location.search);
+            const paid = sp.get('paid');
+            const sessionId = sp.get('session_id'); // if backend appends it
+            if ((paid === '1' || sessionId) && currentUserId) {
+              toast({
+                title: "Payment successful 🎉",
+                description: "Bags on the way!",
+              });
+              // Clean the URL so the toast doesn't reappear on refresh
+              const cleaned = new URLSearchParams(location.search);
+              cleaned.delete('paid');
+              cleaned.delete('session_id');
+              navigate(`${location.pathname}?${cleaned.toString()}`, { replace: true });
+            }
+          }, [location.search, currentUserId, toast, navigate, location.pathname]);
       
       if (isLoadingUser) {
         return <LoadingState message="Verifying user session..." />;

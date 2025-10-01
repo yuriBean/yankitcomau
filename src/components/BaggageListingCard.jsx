@@ -54,8 +54,7 @@ import React, {useState} from 'react';
           setLoading(true);
       
           // Build the redirect URL you want Stripe to come back to
-          const successRedirect = `${window.location.origin}/my-activity?chatOpen=true&listingId=${listingId}&recipientId=${travellerUserId}&recipientName=${encodeURIComponent(travellerName)}`;
-      
+          const successRedirect = `${window.location.origin}/my-shipments?paid=1&chatOpen=true&listingId=${listingId}&recipientId=${travellerUserId}&recipientName=${encodeURIComponent(travellerName)}`;      
           const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/create-checkout-session`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
