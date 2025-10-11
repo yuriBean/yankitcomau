@@ -57,7 +57,7 @@ import React from 'react';
           links: [
             { name: "Yank a Bag Now", path: "/yank-a-bag-now" },
             { name: "Send a Bag", path: "/send-a-bag" },
-            { name: "Flights", path: "/flights" },
+            // { name: "Flights", path: "/flights" },
           ],
         },
       ];

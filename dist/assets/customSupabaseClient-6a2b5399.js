@@ -1,0 +1,1 @@
+import{a3 as s}from"./index-90132984.js";const a="https://funprubplxgwmsswwauj.supabase.co",I="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1bnBydWJwbHhnd21zc3d3YXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgwNTQ2NTksImV4cCI6MjA2MzYzMDY1OX0.ZbUuoqEMHQboBEvuqwdtz718PMX1bZ_NEELaQaSeixg",b=s(a,I);export{b as s};
